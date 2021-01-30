@@ -6,7 +6,7 @@
 // Arduino pin numbers
 const byte BLUE_PIN = A0;
 const byte YELLOW_PIN = A2;
-const byte GREEN_PIN = A3;
+const byte GREEN_PIN = A4;
 
 // Variables
 double blue_val = -99999;
@@ -30,5 +30,5 @@ void loop() {
   Serial.print("Green  - ");
   Serial.println(green_val);
   Serial.println();
-  delay(500);
+  delay(200);
 }
