@@ -3,6 +3,7 @@
 // PWR - Brown
 // GND - Purple
 // Internal pull-up resistors appear well tuned for this. Tried 1M Ohm resistor for pull-down, got minimal success.
+// Sensors from left to right 1, 2, center
 
 // Arduino pin numbers
 const byte QUAD1_PIN = A0; // Red Wire
@@ -10,9 +11,11 @@ const byte QUAD2_PIN = A2; // Grey Wire
 const byte CENT_PIN = A4; // Blue Wire
 
 // Variables
-double quad1_val = -99999;
-double quad2_val = -99999;
-double cent_val = -99999;
+byte quad1_val = 0;
+byte quad2_val = 0;
+byte cent_val = 0;
+byte state = 0b00;
+bool centered = false;
 
 
 void setup() {
@@ -34,5 +37,7 @@ void loop() {
   Serial.print("Center  - ");
   Serial.println(cent_val);
   Serial.println();
+  state = (quad1_val << 1) + quad2_val;
+  Serial.println(state);
   delay(200);
 }
