@@ -11,7 +11,15 @@
 const byte QUAD1_PIN = A0; // Red Wire
 const byte QUAD2_PIN = A1; // Grey Wire
 const byte CENT_PIN = A2; // Blue Wire
+
+const byte DIR1_PIN = 3;
+const byte DIR2_PIN = 4;
+const byte SPEED_PIN = 5;
+
+
 const int QEM[16] = {0,-1,1,2,1,0,2,-1,-1,2,0,1,2,1,-1,0};
+
+
 
 // Variables
 byte quad1_val = 0;
@@ -29,6 +37,16 @@ void setup() {
   pinMode(QUAD1_PIN, INPUT_PULLUP);
   pinMode(QUAD2_PIN, INPUT_PULLUP);
   pinMode(CENT_PIN, INPUT_PULLUP);
+  count = 0;
+
+  // Motor controller
+  pinMode(SPEED_PIN, OUTPUT);
+  pinMode(DIR1_PIN, OUTPUT);
+  pinMode(DIR2_PIN, OUTPUT);
+
+  digitalWrite(DIR1_PIN, LOW);
+  digitalWrite(DIR2_PIN, LOW);
+  analogWrite(SPEED_PIN, 128);
 }
 
 void loop() {
@@ -40,16 +58,19 @@ void loop() {
   if (cent_val) {
     count = 0;
   }
-  //Serial.print("Quad 1  - ");
-  //Serial.println(quad1_val);
-  //Serial.print("Quad 2  - ");
-  //Serial.println(quad2_val);
-  //Serial.print("Center  - ");
-  //Serial.println(cent_val);
-  //Serial.println();
+
   last_state = curr_state;
   curr_state = (quad1_val << 1) + quad2_val;
   count = count + QEM[(last_state * 4) + curr_state];
   //Serial.println(QEM[(last_state * 4) + curr_state]);
-  Serial.println(count);
+  Serial.print(count);
+
+  analogWrite(SPEED_PIN, 64);
+  if (count < 30 && count > -30) {
+    digitalWrite(DIR2_PIN, HIGH);
+    Serial.println(" high");
+  } else {
+    Serial.println(" low");
+    digitalWrite(DIR2_PIN, LOW);
+  }
 }
