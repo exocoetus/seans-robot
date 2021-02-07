@@ -4,7 +4,8 @@
 
 // PWR - Brown
 // GND - Purple
-// Internal pull-up resistors appear well tuned for this. Tried 1M Ohm resistor for pull-down, got minimal success.
+// Internal pull-up resistors appear well tuned for this. 
+// Tried 1M Ohm resistor for pull-down, got minimal success.
 // Sensors from left to right 1, 2, center
 
 // Arduino pin numbers
@@ -12,13 +13,11 @@ const byte QUAD1_PIN = A0; // Red Wire
 const byte QUAD2_PIN = A1; // Grey Wire
 const byte CENT_PIN = A2; // Blue Wire
 
-const byte DIR1_PIN = 3;
-const byte DIR2_PIN = 4;
-const byte SPEED_PIN = 5;
-
+const byte EN1 = 5; // Enable 1
+const byte IN1 = 3; // Input 1
+const byte IN2 = 4; // Input 2
 
 const int QEM[16] = {0,-1,1,2,1,0,2,-1,-1,2,0,1,2,1,-1,0};
-
 
 
 // Variables
@@ -28,49 +27,74 @@ byte cent_val = 0;
 int last_state = 0b00;
 int curr_state = 0b00;
 int dir = 2;
-bool centered = false;
-int count = 0;
+int pos = 0;
 
 
 void setup() {
-  Serial.begin(9600); // opens serial port, sets data rate to 9600 bps
+  Serial.begin(57600); // set baud rate to 57600, slower causes issues
+  // Set pinmodes
   pinMode(QUAD1_PIN, INPUT_PULLUP);
   pinMode(QUAD2_PIN, INPUT_PULLUP);
   pinMode(CENT_PIN, INPUT_PULLUP);
-  count = 0;
+  pinMode(EN1, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
 
-  // Motor controller
-  pinMode(SPEED_PIN, OUTPUT);
-  pinMode(DIR1_PIN, OUTPUT);
-  pinMode(DIR2_PIN, OUTPUT);
+  // No motor movement
+  digitalWrite(IN1, LOW); // LOW, HIGH => CCW
+  digitalWrite(IN2, LOW); // HIGH, LOW => CW
+  analogWrite(EN1, 0);
 
-  digitalWrite(DIR1_PIN, LOW);
-  digitalWrite(DIR2_PIN, LOW);
-  analogWrite(SPEED_PIN, 128);
+  pos = -9999;
+  calibrate();
+  Serial.println("Calibrated");
 }
 
 void loop() {
-  // Check instructions from Pi (Mode, Drive data)
+  updatePosition();
+  Serial.println(pos);
+}
+
+void updatePosition() {
   quad1_val = digitalRead(QUAD1_PIN);
   quad2_val = digitalRead(QUAD2_PIN);
-  cent_val = digitalRead(CENT_PIN);
-
-  if (cent_val) {
-    count = 0;
+  if (digitalRead(CENT_PIN)) {
+    pos = 0;
   }
-
+  
   last_state = curr_state;
   curr_state = (quad1_val << 1) + quad2_val;
-  count = count + QEM[(last_state * 4) + curr_state];
-  //Serial.println(QEM[(last_state * 4) + curr_state]);
-  Serial.print(count);
+  pos = pos + QEM[(last_state * 4) + curr_state];
+}
 
-  analogWrite(SPEED_PIN, 64);
-  if (count < 30 && count > -30) {
-    digitalWrite(DIR2_PIN, HIGH);
-    Serial.println(" high");
-  } else {
-    Serial.println(" low");
-    digitalWrite(DIR2_PIN, LOW);
+// Find the center position, uninformed
+void calibrate() {
+  int num = 180;
+  int factor = 1;
+  while (pos != 0) {
+    for (int i = 0; i < 5000; i++) {
+      updatePosition();
+      rotate(num);
+    }
+    num * -1;
   }
+}
+
+void stop() {
+  analogWrite(EN1, 0);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+}
+
+// Rotate between -255 (CCW) and 255 (CW) speed
+void rotate(int intensity) {
+  stop();
+  if (intensity < 0) {
+    digitalWrite(IN2, HIGH);
+  } else if (intensity > 0) {
+    digitalWrite(IN1, HIGH);
+  } else {
+    stop();
+  }
+  analogWrite(EN1, intensity);
 }
