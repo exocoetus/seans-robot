@@ -8,6 +8,8 @@
 // Tried 1M Ohm resistor for pull-down, got minimal success.
 // Sensors from left to right 1, 2, center
 
+// Low pass filter on motor recommended to reduce whine
+
 // Arduino pin numbers
 const byte QUAD1_PIN = A0; // Red Wire
 const byte QUAD2_PIN = A1; // Grey Wire
@@ -29,6 +31,7 @@ int last_state = 0b00;
 int curr_state = 0b00;
 int dir = 2;
 int pos = 0;
+bool calibrated = false;
 
 
 void setup() {
@@ -53,6 +56,10 @@ void setup() {
 void loop() {
   updatePosition();
   Serial.println(pos);
+  rotate(0);
+  for (int i = 0; i < 8000; i++) {
+    updatePosition();
+  }
 }
 
 void updatePosition() {
@@ -60,6 +67,7 @@ void updatePosition() {
   quad2_val = digitalRead(QUAD2_PIN);
   if (digitalRead(CENT_PIN)) {
     pos = 0;
+    calibrated = true;
   }
   
   last_state = curr_state;
@@ -67,22 +75,18 @@ void updatePosition() {
   pos = pos + QEM[(last_state * 4) + curr_state];
 }
 
-// Find the center position, uninformed
+// Find the center position
 void calibrate() {
-  int num = 90;
-  int factor = 1;
-  while (pos != 0) {
-    for (int i = 0; i < 500; i++) {
-      rotate(num);
-      if (digitalRead(CENT_PIN)) {
-        pos = 0;
-        freeze();
-        return;
-      }
-      Serial.println(i);
+  calibrated = false;
+  bool ccw = false;
+  while (!calibrated) {
+    // Check if rotation occured
+    if (!rotateCheck(ccw)) {
+      Serial.println("OOF");
+      ccw = !ccw;
     }
-    num = num * -1;
   }
+  freeze();
 }
 
 void freeze() {
@@ -101,5 +105,23 @@ void rotate(int intensity) {
   } else {
     freeze();
   }
-  analogWrite(EN1, intensity);
+  analogWrite(EN1, abs(intensity));
+}
+
+// Check CW rotation otherwise CCW
+bool rotateCheck(bool ccw) {
+  updatePosition();
+  int last_pos = pos;
+  if (ccw) {
+    rotate(-70);
+  } else {
+    rotate(70);
+  }
+  for (int i = 0; i < 24000; i++) {
+    updatePosition();
+  }
+  if (abs(pos - last_pos) < 2) {
+    return false;
+  }
+  return true;
 }
