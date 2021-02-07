@@ -19,6 +19,7 @@ const byte IN2 = 4; // Input 2
 
 const int QEM[16] = {0,-1,1,2,1,0,2,-1,-1,2,0,1,2,1,-1,0};
 
+const int baudrate = 57600;
 
 // Variables
 byte quad1_val = 0;
@@ -47,7 +48,6 @@ void setup() {
 
   pos = -9999;
   calibrate();
-  Serial.println("Calibrated");
 }
 
 void loop() {
@@ -69,18 +69,23 @@ void updatePosition() {
 
 // Find the center position, uninformed
 void calibrate() {
-  int num = 180;
+  int num = 90;
   int factor = 1;
   while (pos != 0) {
-    for (int i = 0; i < 5000; i++) {
-      updatePosition();
+    for (int i = 0; i < 500; i++) {
       rotate(num);
+      if (digitalRead(CENT_PIN)) {
+        pos = 0;
+        freeze();
+        return;
+      }
+      Serial.println(i);
     }
-    num * -1;
+    num = num * -1;
   }
 }
 
-void stop() {
+void freeze() {
   analogWrite(EN1, 0);
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
@@ -88,13 +93,13 @@ void stop() {
 
 // Rotate between -255 (CCW) and 255 (CW) speed
 void rotate(int intensity) {
-  stop();
+  freeze();
   if (intensity < 0) {
     digitalWrite(IN2, HIGH);
   } else if (intensity > 0) {
     digitalWrite(IN1, HIGH);
   } else {
-    stop();
+    freeze();
   }
   analogWrite(EN1, intensity);
 }
