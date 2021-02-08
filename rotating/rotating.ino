@@ -1,6 +1,7 @@
 // Hasbro R2D2 Quadrature encoder based dome actuator
 // https://cdn.sparkfun.com/datasheets/Robotics/How%20to%20use%20a%20quadrature%20encoder.pdf
 // https://www.dynapar.com/knowledge/how-to-calculate-encoder-resolution
+// https://forum.arduino.cc/index.php?topic=606542.0
 
 // PWR - Brown
 // GND - Purple
@@ -9,6 +10,8 @@
 // Sensors from left to right 1, 2, center
 
 // Low pass filter on motor recommended to reduce whine
+// I ended up just raising pwm frequency by setting timer 0 divisor to 1
+// Will this have unintended consequences? That is a problem for future Sean
 
 // Arduino pin numbers
 const byte QUAD1_PIN = A0; // Red Wire
@@ -43,6 +46,7 @@ void setup() {
   pinMode(EN1, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
+  TCCR0B = TCCR0B & B11111000 | B00000001; // set timer 0 divisor to 1
 
   // No motor movement
   digitalWrite(IN1, LOW); // LOW, HIGH => CCW
@@ -117,7 +121,7 @@ bool rotateCheck(bool ccw) {
   } else {
     rotate(70);
   }
-  for (int i = 0; i < 24000; i++) {
+  for (int i = 0; i < 6000; i++) {
     updatePosition();
   }
   if (abs(pos - last_pos) < 2) {
